@@ -13,17 +13,15 @@ import android.graphics.drawable.ShapeDrawable;
 import android.graphics.drawable.StateListDrawable;
 import android.graphics.drawable.shapes.OvalShape;
 import android.os.Build;
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 import android.text.SpannableString;
 import android.text.Spanned;
-import android.view.Gravity;
 import android.view.View;
-import android.widget.CheckedTextView;
+import android.widget.FrameLayout;
+import android.widget.TextView;
 
 import com.prolificinteractive.materialcalendarview.MaterialCalendarView.ShowOtherDates;
 import com.prolificinteractive.materialcalendarview.format.DayFormatter;
-
-import java.util.List;
 
 import static com.prolificinteractive.materialcalendarview.MaterialCalendarView.showDecoratedDisabled;
 import static com.prolificinteractive.materialcalendarview.MaterialCalendarView.showOtherMonths;
@@ -33,7 +31,7 @@ import static com.prolificinteractive.materialcalendarview.MaterialCalendarView.
  * Display one day of a {@linkplain MaterialCalendarView}
  */
 @SuppressLint("ViewConstructor")
-class DayView extends CheckedTextView {
+public abstract class DayView extends FrameLayout {
 
     private CalendarDay date;
     private int selectionColor = Color.GRAY;
@@ -47,6 +45,8 @@ class DayView extends CheckedTextView {
     private boolean isInRange = true;
     private boolean isInMonth = true;
     private boolean isDecoratedDisabled = false;
+    private boolean isSelected = false;
+
     @ShowOtherDates
     private int showOtherDates = MaterialCalendarView.SHOW_DEFAULTS;
 
@@ -57,8 +57,6 @@ class DayView extends CheckedTextView {
 
         setSelectionColor(this.selectionColor);
 
-        setGravity(Gravity.CENTER);
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
             setTextAlignment(TEXT_ALIGNMENT_CENTER);
         }
@@ -66,9 +64,10 @@ class DayView extends CheckedTextView {
         setDay(day);
     }
 
+    public abstract TextView getDayOfMonthTextView();
+
     public void setDay(CalendarDay date) {
         this.date = date;
-        setText(getLabel());
     }
 
     /**
@@ -78,7 +77,7 @@ class DayView extends CheckedTextView {
      */
     public void setDayFormatter(DayFormatter formatter) {
         this.formatter = formatter == null ? DayFormatter.DEFAULT : formatter;
-        CharSequence currentLabel = getText();
+        CharSequence currentLabel = getDayOfMonthTextView().getText();
         Object[] spans = null;
         if (currentLabel instanceof Spanned) {
             spans = ((Spanned) currentLabel).getSpans(0, currentLabel.length(), Object.class);
@@ -89,12 +88,26 @@ class DayView extends CheckedTextView {
                 newLabel.setSpan(span, 0, newLabel.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
         }
-        setText(newLabel);
+        getDayOfMonthTextView().setText(newLabel);
     }
 
     @NonNull
     public String getLabel() {
         return formatter.format(date);
+    }
+
+    public void setTextAppearance(Context context, int taId) {
+        getDayOfMonthTextView().setTextAppearance(context, taId);
+    }
+
+    @Override
+    public boolean isSelected() {
+        return this.isSelected;
+    }
+
+    @Override
+    public void setSelected(boolean selected) {
+        this.isSelected = selected;
     }
 
     public void setSelectionColor(int color) {
@@ -130,6 +143,11 @@ class DayView extends CheckedTextView {
         return date;
     }
 
+    public void setDayEnabled(boolean enabled) {
+        isDecoratedDisabled = !enabled;
+        setEnabled();
+    }
+
     private void setEnabled() {
         boolean enabled = isInMonth && isInRange && !isDecoratedDisabled;
         super.setEnabled(isInRange && !isDecoratedDisabled);
@@ -153,7 +171,7 @@ class DayView extends CheckedTextView {
         }
 
         if (!isInMonth && shouldBeVisible) {
-            setTextColor(getTextColors().getColorForState(
+            getDayOfMonthTextView().setTextColor(getDayOfMonthTextView().getTextColors().getColorForState(
                     new int[]{-android.R.attr.state_enabled}, Color.GRAY));
         }
         setVisibility(shouldBeVisible ? View.VISIBLE : View.INVISIBLE);
@@ -229,32 +247,6 @@ class DayView extends CheckedTextView {
         }
 
         return rippleDrawable;
-    }
-
-    /**
-     * @param facade apply the facade to us
-     */
-    void applyFacade(DayViewFacade facade) {
-        this.isDecoratedDisabled = facade.areDaysDisabled();
-        setEnabled();
-
-        setCustomBackground(facade.getBackgroundDrawable());
-        setSelectionDrawable(facade.getSelectionDrawable());
-
-        // Facade has spans
-        List<DayViewFacade.Span> spans = facade.getSpans();
-        if (!spans.isEmpty()) {
-            String label = getLabel();
-            SpannableString formattedLabel = new SpannableString(getLabel());
-            for (DayViewFacade.Span span : spans) {
-                formattedLabel.setSpan(span.span, 0, label.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            }
-            setText(formattedLabel);
-        }
-        // Reset in case it was customized previously
-        else {
-            setText(getLabel());
-        }
     }
 
     @Override

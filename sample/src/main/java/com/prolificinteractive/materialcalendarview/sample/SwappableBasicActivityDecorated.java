@@ -1,8 +1,6 @@
 package com.prolificinteractive.materialcalendarview.sample;
 
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.v7.app.AppCompatActivity;
 
 import com.prolificinteractive.materialcalendarview.CalendarDay;
 import com.prolificinteractive.materialcalendarview.CalendarMode;
@@ -14,7 +12,9 @@ import com.prolificinteractive.materialcalendarview.sample.decorators.OneDayDeco
 
 import java.util.Calendar;
 
-import butterknife.Bind;
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
 
@@ -25,7 +25,7 @@ public class SwappableBasicActivityDecorated extends AppCompatActivity implement
 
     private final OneDayDecorator oneDayDecorator = new OneDayDecorator();
 
-    @Bind(R.id.calendarView)
+    @BindView(R.id.calendarView)
     MaterialCalendarView widget;
 
     @Override

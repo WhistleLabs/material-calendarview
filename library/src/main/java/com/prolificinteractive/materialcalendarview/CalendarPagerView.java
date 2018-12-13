@@ -1,6 +1,6 @@
 package com.prolificinteractive.materialcalendarview;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 import android.util.AttributeSet;
 import android.view.View;
 import android.view.ViewGroup;
@@ -19,7 +19,6 @@ import java.util.List;
 import static com.prolificinteractive.materialcalendarview.MaterialCalendarView.SHOW_DEFAULTS;
 import static com.prolificinteractive.materialcalendarview.MaterialCalendarView.showOtherMonths;
 import static java.util.Calendar.DATE;
-import static java.util.Calendar.DAY_OF_WEEK;
 
 abstract class CalendarPagerView extends ViewGroup implements View.OnClickListener {
 
@@ -28,7 +27,7 @@ abstract class CalendarPagerView extends ViewGroup implements View.OnClickListen
     protected static final int DAY_NAMES_ROW = 1;
     private static final Calendar tempWorkingCalendar = CalendarUtils.getInstance();
     private final ArrayList<WeekDayView> weekDayViews = new ArrayList<>();
-    private final ArrayList<DecoratorResult> decoratorResults = new ArrayList<>();
+    private final ArrayList<DayViewDecorator> decorators = new ArrayList<>();
     @ShowOtherDates
     protected int showOtherDates = SHOW_DEFAULTS;
     private MaterialCalendarView mcv;
@@ -65,7 +64,8 @@ abstract class CalendarPagerView extends ViewGroup implements View.OnClickListen
 
     protected void addDayView(Collection<DayView> dayViews, Calendar calendar) {
         CalendarDay day = CalendarDay.from(calendar);
-        DayView dayView = new DayView(getContext(), day);
+        DayView dayView = mcv.getDayViewProvider().getDayView(day);
+        dayView.getDayOfMonthTextView().setText(dayView.getLabel());
         dayView.setOnClickListener(this);
         dayViews.add(dayView);
         addView(dayView, new LayoutParams());
@@ -96,10 +96,10 @@ abstract class CalendarPagerView extends ViewGroup implements View.OnClickListen
 
     protected abstract boolean isDayEnabled(CalendarDay day);
 
-    void setDayViewDecorators(List<DecoratorResult> results) {
-        this.decoratorResults.clear();
+    void setDayViewDecorators(List<DayViewDecorator> results) {
+        this.decorators.clear();
         if (results != null) {
-            this.decoratorResults.addAll(results);
+            this.decorators.addAll(results);
         }
         invalidateDecorators();
     }
@@ -159,7 +159,7 @@ abstract class CalendarPagerView extends ViewGroup implements View.OnClickListen
     public void setSelectedDates(Collection<CalendarDay> dates) {
         for (DayView dayView : dayViews) {
             CalendarDay day = dayView.getDate();
-            dayView.setChecked(dates != null && dates.contains(day));
+            dayView.setSelected(dates != null && dates.contains(day));
         }
         postInvalidate();
     }
@@ -174,15 +174,12 @@ abstract class CalendarPagerView extends ViewGroup implements View.OnClickListen
     }
 
     protected void invalidateDecorators() {
-        final DayViewFacade facadeAccumulator = new DayViewFacade();
         for (DayView dayView : dayViews) {
-            facadeAccumulator.reset();
-            for (DecoratorResult result : decoratorResults) {
-                if (result.decorator.shouldDecorate(dayView.getDate())) {
-                    result.result.applyTo(facadeAccumulator);
+            for (DayViewDecorator decorator : decorators) {
+                if (decorator.shouldDecorate(dayView.getDate())) {
+                    decorator.decorate(dayView);
                 }
             }
-            dayView.applyFacade(facadeAccumulator);
         }
     }
 
@@ -249,6 +246,7 @@ abstract class CalendarPagerView extends ViewGroup implements View.OnClickListen
 
     /**
      * Return the number of rows to display per page
+     *
      * @return
      */
     protected abstract int getRows();
@@ -309,7 +307,6 @@ abstract class CalendarPagerView extends ViewGroup implements View.OnClickListen
     protected ViewGroup.LayoutParams generateLayoutParams(ViewGroup.LayoutParams p) {
         return new LayoutParams();
     }
-
 
     @Override
     public void onInitializeAccessibilityEvent(@NonNull AccessibilityEvent event) {

@@ -1,16 +1,16 @@
 package com.prolificinteractive.materialcalendarview.sample;
 
 import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
 
 import com.prolificinteractive.materialcalendarview.MaterialCalendarView;
 
-import butterknife.Bind;
+import androidx.appcompat.app.AppCompatActivity;
+import butterknife.BindView;
 import butterknife.ButterKnife;
 
 public class CustomizeXmlActivity extends AppCompatActivity {
 
-    @Bind(R.id.calendarView)
+    @BindView(R.id.calendarView)
     MaterialCalendarView widget;
 
     @Override

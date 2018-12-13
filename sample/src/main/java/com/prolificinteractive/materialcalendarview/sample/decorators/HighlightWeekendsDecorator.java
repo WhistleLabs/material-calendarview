@@ -5,8 +5,8 @@ import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 
 import com.prolificinteractive.materialcalendarview.CalendarDay;
+import com.prolificinteractive.materialcalendarview.DayView;
 import com.prolificinteractive.materialcalendarview.DayViewDecorator;
-import com.prolificinteractive.materialcalendarview.DayViewFacade;
 
 import java.util.Calendar;
 
@@ -31,7 +31,7 @@ public class HighlightWeekendsDecorator implements DayViewDecorator {
     }
 
     @Override
-    public void decorate(DayViewFacade view) {
-        view.setBackgroundDrawable(highlightDrawable);
+    public void decorate(DayView view) {
+        view.getDayOfMonthTextView().setBackgroundDrawable(highlightDrawable);
     }
 }

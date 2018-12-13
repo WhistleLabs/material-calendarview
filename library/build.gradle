@@ -1,14 +1,17 @@
 apply plugin: 'com.android.library'
 apply plugin: 'maven'
 apply plugin: 'signing'
+apply plugin: 'com.github.dcendents.android-maven'
+
+group='com.github.svenji'
 
 android {
-    compileSdkVersion 25
-    buildToolsVersion "25.0.2"
+    compileSdkVersion 28
+    buildToolsVersion "28.0.3"
 
     defaultConfig {
         minSdkVersion 14
-        targetSdkVersion 25
+        targetSdkVersion 28
         versionCode project.ext.versionCodeInt
         versionName version
     }
@@ -19,9 +22,9 @@ android {
 }
 
 dependencies {
-    compile 'com.android.support:support-v4:25.1.1'
+    api 'androidx.legacy:legacy-support-v4:1.0.0'
 
-    testCompile 'junit:junit:4.12'
+    testImplementation 'junit:junit:4.12'
 }
 
 task sourcesJar(type: Jar) {

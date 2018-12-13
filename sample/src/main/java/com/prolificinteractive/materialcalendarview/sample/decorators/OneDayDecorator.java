@@ -1,12 +1,14 @@
 package com.prolificinteractive.materialcalendarview.sample.decorators;
 
 import android.graphics.Typeface;
+import android.text.SpannableString;
+import android.text.Spanned;
 import android.text.style.RelativeSizeSpan;
 import android.text.style.StyleSpan;
 
 import com.prolificinteractive.materialcalendarview.CalendarDay;
+import com.prolificinteractive.materialcalendarview.DayView;
 import com.prolificinteractive.materialcalendarview.DayViewDecorator;
-import com.prolificinteractive.materialcalendarview.DayViewFacade;
 import com.prolificinteractive.materialcalendarview.MaterialCalendarView;
 
 import java.util.Date;
@@ -28,9 +30,11 @@ public class OneDayDecorator implements DayViewDecorator {
     }
 
     @Override
-    public void decorate(DayViewFacade view) {
-        view.addSpan(new StyleSpan(Typeface.BOLD));
-        view.addSpan(new RelativeSizeSpan(1.4f));
+    public void decorate(DayView view) {
+        SpannableString formattedLabel = new SpannableString(view.getLabel());
+        formattedLabel.setSpan(new StyleSpan(Typeface.BOLD), 0, view.getLabel().length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        formattedLabel.setSpan(new RelativeSizeSpan(1.4f), 0, view.getLabel().length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        view.getDayOfMonthTextView().setText(formattedLabel);
     }
 
     /**

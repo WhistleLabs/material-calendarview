@@ -3,18 +3,18 @@ package com.prolificinteractive.materialcalendarview.sample;
 import android.content.DialogInterface;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
 import android.widget.LinearLayout;
 import android.widget.NumberPicker;
 
 import com.prolificinteractive.materialcalendarview.CalendarDay;
+import com.prolificinteractive.materialcalendarview.DayView;
 import com.prolificinteractive.materialcalendarview.DayViewDecorator;
-import com.prolificinteractive.materialcalendarview.DayViewFacade;
 import com.prolificinteractive.materialcalendarview.MaterialCalendarView;
 
-import butterknife.Bind;
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
 
@@ -23,7 +23,7 @@ import butterknife.OnClick;
  */
 public class CustomTileDimensions extends AppCompatActivity {
 
-  @Bind(R.id.calendarView)
+  @BindView(R.id.calendarView)
   MaterialCalendarView widget;
 
   private int currentTileWidth;
@@ -110,8 +110,8 @@ public class CustomTileDimensions extends AppCompatActivity {
     }
 
     @Override
-    public void decorate(DayViewFacade view) {
-      view.setBackgroundDrawable(backgroundDrawable);
+    public void decorate(DayView view) {
+      view.getDayOfMonthTextView().setBackgroundDrawable(backgroundDrawable);
     }
   }
 }

@@ -4,8 +4,8 @@ import android.app.Activity;
 import android.graphics.drawable.Drawable;
 
 import com.prolificinteractive.materialcalendarview.CalendarDay;
+import com.prolificinteractive.materialcalendarview.DayView;
 import com.prolificinteractive.materialcalendarview.DayViewDecorator;
-import com.prolificinteractive.materialcalendarview.DayViewFacade;
 import com.prolificinteractive.materialcalendarview.sample.R;
 
 /**
@@ -25,7 +25,7 @@ public class MySelectorDecorator implements DayViewDecorator {
     }
 
     @Override
-    public void decorate(DayViewFacade view) {
+    public void decorate(DayView view) {
         view.setSelectionDrawable(drawable);
     }
 }

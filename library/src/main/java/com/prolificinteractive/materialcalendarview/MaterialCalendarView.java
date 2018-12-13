@@ -8,11 +8,11 @@ import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Parcel;
 import android.os.Parcelable;
-import android.support.annotation.ArrayRes;
-import android.support.annotation.IntDef;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.v4.view.ViewPager;
+import androidx.annotation.ArrayRes;
+import androidx.annotation.IntDef;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.viewpager.widget.ViewPager;
 import android.util.AttributeSet;
 import android.util.SparseArray;
 import android.util.TypedValue;
@@ -179,6 +179,8 @@ public class MaterialCalendarView extends ViewGroup {
     private CalendarDay currentMonth;
     private LinearLayout topbar;
     private CalendarMode calendarMode;
+    private DayViewProvider mDayViewProvider;
+
     /**
      * Used for the dynamic calendar height.
      */
@@ -275,6 +277,8 @@ public class MaterialCalendarView extends ViewGroup {
                 page.setAlpha(position);
             }
         });
+
+        mDayViewProvider = new DefaultDayViewProvider(getContext());
 
         TypedArray a = context.getTheme()
                 .obtainStyledAttributes(attrs, R.styleable.MaterialCalendarView, 0, 0);
@@ -1261,6 +1265,18 @@ public class MaterialCalendarView extends ViewGroup {
         return mDynamicHeightEnabled;
     }
 
+    /**
+     * Sets the DayView provider
+     *
+     * @param dayViewProvider provider to use
+     */
+    public void setDayViewProvider(DayViewProvider dayViewProvider) {
+        this.mDayViewProvider = dayViewProvider;
+    }
+
+    public DayViewProvider getDayViewProvider() {
+        return this.mDayViewProvider;
+    }
 
     /**
      * Add a collection of day decorators
@@ -1425,6 +1441,7 @@ public class MaterialCalendarView extends ViewGroup {
      * @param nowSelected true if the date is now selected, false otherwise
      */
     protected void onDateClicked(@NonNull CalendarDay date, boolean nowSelected) {
+        List<CalendarDay> selectedDates = adapter.getSelectedDates();
         switch (selectionMode) {
             case SELECTION_MODE_MULTIPLE: {
                 adapter.setDateSelected(date, nowSelected);
@@ -1433,16 +1450,15 @@ public class MaterialCalendarView extends ViewGroup {
             break;
             case SELECTION_MODE_RANGE: {
                 adapter.setDateSelected(date, nowSelected);
-                if (adapter.getSelectedDates().size() > 2) {
+                if (selectedDates.size() > 2) {
                     adapter.clearSelections();
                     adapter.setDateSelected(date, nowSelected);  //  re-set because adapter has been cleared
                     dispatchOnDateSelected(date, nowSelected);
                 } else if (adapter.getSelectedDates().size() == 2) {
-                    final List<CalendarDay> dates = adapter.getSelectedDates();
-                    if (dates.get(0).isAfter(dates.get(1))) {
-                        dispatchOnRangeSelected(dates.get(1), dates.get(0));
+                    if (selectedDates.get(0).isAfter(selectedDates.get(1))) {
+                        dispatchOnRangeSelected(selectedDates.get(1), selectedDates.get(0));
                     } else {
-                        dispatchOnRangeSelected(dates.get(0), dates.get(1));
+                        dispatchOnRangeSelected(selectedDates.get(0), selectedDates.get(1));
                     }
                 } else {
                     adapter.setDateSelected(date, nowSelected);
@@ -1452,9 +1468,11 @@ public class MaterialCalendarView extends ViewGroup {
             break;
             default:
             case SELECTION_MODE_SINGLE: {
+                CalendarDay previous = selectedDates.isEmpty() ? null : selectedDates.get(0);
                 adapter.clearSelections();
-                adapter.setDateSelected(date, true);
-                dispatchOnDateSelected(date, true);
+                boolean isNewSelection = !date.equals(previous);
+                adapter.setDateSelected(date, isNewSelection);
+                dispatchOnDateSelected(date, isNewSelection);
             }
             break;
         }
@@ -1495,7 +1513,7 @@ public class MaterialCalendarView extends ViewGroup {
                 goToNext();
             }
         }
-        onDateClicked(dayView.getDate(), !dayView.isChecked());
+        onDateClicked(dayView.getDate(), !dayView.isSelected());
 
     }
 
@@ -1744,7 +1762,6 @@ public class MaterialCalendarView extends ViewGroup {
         return new LayoutParams(1);
     }
 
-
     @Override
     public void onInitializeAccessibilityEvent(@NonNull AccessibilityEvent event) {
         super.onInitializeAccessibilityEvent(event);
@@ -1809,6 +1826,7 @@ public class MaterialCalendarView extends ViewGroup {
         private final int firstDayOfWeek;
         private final CalendarDay minDate;
         private final CalendarDay maxDate;
+        private final CalendarDay currentDate;
         private final boolean cacheCurrentPosition;
 
         private State(final StateBuilder builder) {
@@ -1816,6 +1834,7 @@ public class MaterialCalendarView extends ViewGroup {
             firstDayOfWeek = builder.firstDayOfWeek;
             minDate = builder.minDate;
             maxDate = builder.maxDate;
+            currentDate = builder.date;
             cacheCurrentPosition = builder.cacheCurrentPosition;
         }
 
@@ -1834,6 +1853,7 @@ public class MaterialCalendarView extends ViewGroup {
         private boolean cacheCurrentPosition = false;
         private CalendarDay minDate = null;
         private CalendarDay maxDate = null;
+        private CalendarDay date = null;
 
         public StateBuilder() {
         }
@@ -1870,7 +1890,6 @@ public class MaterialCalendarView extends ViewGroup {
             this.calendarMode = mode;
             return this;
         }
-
 
         /**
          * @param calendar set the minimum selectable date, null for no minimum
@@ -1917,6 +1936,14 @@ public class MaterialCalendarView extends ViewGroup {
          */
         public StateBuilder setMaximumDate(@Nullable CalendarDay calendar) {
             maxDate = calendar;
+            return this;
+        }
+
+        /**
+         * @param calendarDay set the current date to initialize on, null for today
+         */
+        public StateBuilder setDate(@Nullable CalendarDay calendarDay) {
+            date = calendarDay;
             return this;
         }
 
@@ -2002,10 +2029,14 @@ public class MaterialCalendarView extends ViewGroup {
         // Reset height params after mode change
         pager.setLayoutParams(new LayoutParams(calendarMode.visibleWeeksCount + DAY_NAMES_ROW));
 
-        setCurrentDate(
-                selectionMode == SELECTION_MODE_SINGLE && !adapter.getSelectedDates().isEmpty()
-                        ? adapter.getSelectedDates().get(0)
-                        : CalendarDay.today());
+        if (state.currentDate != null) {
+            setCurrentDate(state.currentDate);
+        } else {
+            setCurrentDate(
+                    selectionMode == SELECTION_MODE_SINGLE && !adapter.getSelectedDates().isEmpty()
+                            ? adapter.getSelectedDates().get(0)
+                            : CalendarDay.today());
+        }
 
         if (calendarDayToShow != null) {
             pager.setCurrentItem(adapter.getIndexForDay(calendarDayToShow));

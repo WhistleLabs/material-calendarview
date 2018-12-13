@@ -1,7 +1,7 @@
 package com.prolificinteractive.materialcalendarview;
 
-import android.support.annotation.NonNull;
-import android.support.v4.view.PagerAdapter;
+import androidx.annotation.NonNull;
+import androidx.viewpager.widget.PagerAdapter;
 import android.view.View;
 import android.view.ViewGroup;
 
@@ -38,7 +38,6 @@ abstract class CalendarPagerAdapter<V extends CalendarPagerView> extends PagerAd
     private WeekDayFormatter weekDayFormatter = WeekDayFormatter.DEFAULT;
     private DayFormatter dayFormatter = DayFormatter.DEFAULT;
     private List<DayViewDecorator> decorators = new ArrayList<>();
-    private List<DecoratorResult> decoratorResults = null;
     private boolean selectionEnabled = true;
 
     CalendarPagerAdapter(MaterialCalendarView mcv) {
@@ -55,16 +54,8 @@ abstract class CalendarPagerAdapter<V extends CalendarPagerView> extends PagerAd
     }
 
     public void invalidateDecorators() {
-        decoratorResults = new ArrayList<>();
-        for (DayViewDecorator decorator : decorators) {
-            DayViewFacade facade = new DayViewFacade();
-            decorator.decorate(facade);
-            if (facade.isDecorated()) {
-                decoratorResults.add(new DecoratorResult(decorator, facade));
-            }
-        }
         for (V pagerView : currentViews) {
-            pagerView.setDayViewDecorators(decoratorResults);
+            pagerView.setDayViewDecorators(decorators);
         }
     }
 
@@ -90,7 +81,6 @@ abstract class CalendarPagerAdapter<V extends CalendarPagerView> extends PagerAd
         newAdapter.weekDayFormatter = weekDayFormatter;
         newAdapter.dayFormatter = dayFormatter;
         newAdapter.decorators = decorators;
-        newAdapter.decoratorResults = decoratorResults;
         newAdapter.selectionEnabled = selectionEnabled;
         return newAdapter;
     }
@@ -159,7 +149,7 @@ abstract class CalendarPagerAdapter<V extends CalendarPagerView> extends PagerAd
         container.addView(pagerView);
         currentViews.add(pagerView);
 
-        pagerView.setDayViewDecorators(decoratorResults);
+        pagerView.setDayViewDecorators(decorators);
 
         return pagerView;
     }
