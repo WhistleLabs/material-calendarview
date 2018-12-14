@@ -1,9 +1,6 @@
 apply plugin: 'com.android.library'
-apply plugin: 'maven'
-apply plugin: 'signing'
-apply plugin: 'com.github.dcendents.android-maven'
-
-group='com.github.svenji'
+apply plugin: 'maven-publish'
+apply plugin: 'com.jfrog.bintray'
 
 android {
     compileSdkVersion 28
@@ -27,100 +24,80 @@ dependencies {
     testImplementation 'junit:junit:4.12'
 }
 
-task sourcesJar(type: Jar) {
-    from android.sourceSets.main.java.srcDirs
-    classifier = 'sources'
-}
+bintray {
+    user = getMavenUsername()
+    key = getMavenPassword()
+    publications = ['MaterialCalendarView']
+    publish = VERSION_NAME.contains("SNAPSHOT")
+    override = VERSION_NAME.contains("SNAPSHOT")
+    pkg {
+        repo = 'maven-internal'
+        name = POM_ARTIFACT_ID
+        userOrg = 'whistle'
+        licenses = []
+        vcsUrl = 'https://github.com/WhistleLabs/material-calendarview'
 
-artifacts {
-    archives sourcesJar
-}
-
-signing {
-    required { gradle.taskGraph.hasTask("uploadArchives") }
-    sign configurations.archives
-}
-
-def getReleaseRepositoryUrl() {
-    return hasProperty('RELEASE_REPOSITORY_URL') ? RELEASE_REPOSITORY_URL
-            : "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
-}
-
-def getSnapshotRepositoryUrl() {
-    return hasProperty('SNAPSHOT_REPOSITORY_URL') ? SNAPSHOT_REPOSITORY_URL
-            : "https://oss.sonatype.org/content/repositories/snapshots/"
-}
-
-def getRepositoryUsername() {
-    return hasProperty('sonatypeUsername') ? sonatypeUsername : ""
-}
-
-def getRepositoryPassword() {
-    return hasProperty('sonatypePassword') ? sonatypePassword : ""
-}
-
-uploadArchives {
-    repositories.mavenDeployer {
-        beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
-
-        repository(url: getReleaseRepositoryUrl()) {
-            authentication(userName: getRepositoryUsername(), password: getRepositoryPassword())
+        version {
+            name = VERSION_NAME
+            desc = 'Material Calendarview with custom DayViews'
+            released = new Date()
         }
+    }
+}
 
-        snapshotRepository(url: getSnapshotRepositoryUrl()) {
-            authentication(userName: getRepositoryUsername(), password: getRepositoryPassword())
-        }
+publishing {
+    publications {
+        MaterialCalendarView(MavenPublication) {
+            groupId GROUP
+            artifactId POM_ARTIFACT_ID
+            version VERSION_NAME
 
-        pom.groupId = GROUP
-        pom.version = version
-        pom.artifactId = POM_ARTIFACT_ID
+            artifact file('build/outputs/aar/library-release.aar')
+            artifact androidJavadocsJar
+            artifact androidSourcesJar
 
-        pom {
-            project {
-                name POM_NAME
-                packaging POM_PACKAGING
-                description POM_DESCRIPTION
-                url POM_URL
-
-                scm {
-                    url POM_SCM_URL
-                    connection POM_SCM_CONNECTION
-                    developerConnection POM_SCM_DEV_CONNECTION
-                }
-
-                licenses {
-                    license {
-                        name POM_LICENCE_NAME
-                        url POM_LICENCE_URL
-                        distribution POM_LICENCE_DIST
+            // AAR publications don't automatically know about our dependencies, so add them to pom manually
+            pom.withXml {
+                def dependenciesNode = asNode().appendNode('dependencies')
+                configurations.compile.allDependencies.each { // only add 'compile' dependencies
+                    if (it.group && it.name && it.version) {
+                        def dependencyNode = dependenciesNode.appendNode('dependency')
+                        dependencyNode.appendNode('groupId', it.group)
+                        dependencyNode.appendNode('artifactId', it.name)
+                        dependencyNode.appendNode('version', it.version)
                     }
                 }
-
-                developers {
-                    developer {
-                        id POM_DEVELOPER_ID
-                        name POM_DEVELOPER_NAME
-                        email POM_DEVELOPER_EMAIL
-                    }
-                }
-
             }
         }
     }
 }
 
-android.libraryVariants.all { variant ->
-    task("generate${variant.name.capitalize()}Javadoc", type: Javadoc) {
-        title "Material CalendarView ${version}"
-        description "Generates Javadoc for $variant.name."
-        source = variant.javaCompile.source
-        classpath = files(variant.javaCompile.classpath.files, project.android.getBootClasspath())
-        exclude '**/BuildConfig.java'
-        exclude '**/R.java'
-        exclude 'android/support/v4/view/BetterViewPager.java'
-        options {
-            links "http://docs.oracle.com/javase/7/docs/api/"
-            linksOffline "http://d.android.com/reference", "${android.sdkDirectory}/docs/reference"
-        }
-    }
+task androidJavadocs(type: Javadoc) {
+    source = android.sourceSets.main.java.srcDirs
+    classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
+    options.addStringOption("tag", 'inspiredby::"Inspired by:"')
+}
+
+task androidJavadocsJar(type: Jar, dependsOn: androidJavadocs) {
+    classifier = 'javadoc'
+    from androidJavadocs.destinationDir
+}
+
+task androidSourcesJar(type: Jar) {
+    classifier = 'sources'
+    from android.sourceSets.main.java.sourceFiles
+}
+
+afterEvaluate {
+    androidJavadocs.classpath += files(android.libraryVariants.collect { variant ->
+        variant.javaCompile.classpath.files
+    })
+}
+
+def getMavenUsername() {
+    project.hasProperty("WHISTLE_MAVEN_USERNAME") ? project.property("WHISTLE_MAVEN_USERNAME") : System.getenv('WHISTLE_MAVEN_USERNAME')
+}
+
+def getMavenPassword() {
+    project.hasProperty('WHISTLE_MAVEN_PASSWORD') ? project.property('WHISTLE_MAVEN_PASSWORD') : System.getenv('WHISTLE_MAVEN_PASSWORD')
 }
